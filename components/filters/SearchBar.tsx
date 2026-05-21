@@ -1,28 +1,49 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Search, Trash2 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
 
 interface SearchBarProps {
+  value?: string
   onSearch: (query: string) => void
   onClear?: () => void
   placeholder?: string
+  debounceMs?: number
 }
 
-export function SearchBar({ onSearch, onClear, placeholder = 'Search products...' }: SearchBarProps) {
-  const [query, setQuery] = useState('')
+export function SearchBar({
+  value,
+  onSearch,
+  onClear,
+  placeholder = 'Search products...',
+  debounceMs = 300,
+}: SearchBarProps) {
+  const [query, setQuery] = useState(value ?? '')
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    if (value !== undefined) setQuery(value)
+  }, [value])
+
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+    }
+  }, [])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value
-    setQuery(value)
-    onSearch(value)
+    const next = e.target.value
+    setQuery(next)
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => onSearch(next), debounceMs)
   }
 
   const handleClear = () => {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
     setQuery('')
     onClear?.()
+    onSearch('')
   }
 
   return (

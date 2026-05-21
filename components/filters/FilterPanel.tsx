@@ -1,12 +1,15 @@
 'use client'
 
+import React from 'react'
 import { X } from 'lucide-react'
 import { PriceSlider } from './PriceSlider'
 import { Button } from '@/components/ui/button'
 import type { ProductCondition, ProductCategory } from '@/types/product'
 
 interface FilterPanelProps {
+  filters?: FilterState
   onFilterChange?: (filters: FilterState) => void
+  onChange?: (filters: FilterState) => void
   isOpen?: boolean
   onClose?: () => void
 }
@@ -44,33 +47,36 @@ const sortOptions: { id: FilterState['sortBy']; label: string }[] = [
   { id: 'popular', label: 'Most Popular' }
 ]
 
-export function FilterPanel({ onFilterChange, isOpen = true, onClose }: FilterPanelProps) {
-  const [filters, setFilters] = React.useState<FilterState>({
-    condition: [],
-    category: [],
-    priceMin: 0,
-    priceMax: 100000,
-    rating: 0,
-    sortBy: 'recent'
-  })
+const defaultFilters: FilterState = {
+  condition: [],
+  category: [],
+  priceMin: 0,
+  priceMax: 100000,
+  rating: 0,
+  sortBy: 'recent',
+}
+
+export function FilterPanel({
+  filters: controlledFilters,
+  onFilterChange,
+  onChange,
+  isOpen = true,
+  onClose,
+}: FilterPanelProps) {
+  const [internalFilters, setInternalFilters] = React.useState<FilterState>(defaultFilters)
+  const isControlled = controlledFilters !== undefined
+  const filters = isControlled ? controlledFilters : internalFilters
+  const notifyChange = onFilterChange ?? onChange
 
   const handleFilterChange = (newFilters: Partial<FilterState>) => {
     const updated = { ...filters, ...newFilters }
-    setFilters(updated)
-    onFilterChange?.(updated)
+    if (!isControlled) setInternalFilters(updated)
+    notifyChange?.(updated)
   }
 
   const handleReset = () => {
-    const resetFilters: FilterState = {
-      condition: [],
-      category: [],
-      priceMin: 0,
-      priceMax: 100000,
-      rating: 0,
-      sortBy: 'recent'
-    }
-    setFilters(resetFilters)
-    onFilterChange?.(resetFilters)
+    if (!isControlled) setInternalFilters(defaultFilters)
+    notifyChange?.(defaultFilters)
   }
 
   const toggleCondition = (condition: ProductCondition) => {
@@ -123,6 +129,7 @@ export function FilterPanel({ onFilterChange, isOpen = true, onClose }: FilterPa
         <PriceSlider
           min={0}
           max={100000}
+          value={[filters.priceMin, filters.priceMax]}
           onPriceChange={(min, max) => handleFilterChange({ priceMin: min, priceMax: max })}
         />
       </div>
@@ -194,5 +201,3 @@ export function FilterPanel({ onFilterChange, isOpen = true, onClose }: FilterPa
     </div>
   )
 }
-
-import React from 'react'

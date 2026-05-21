@@ -1,7 +1,9 @@
 'use client'
 
+import { useState, FormEvent } from 'react'
 import Link from 'next/link'
-import { Search, ShoppingCart, Heart, MessageCircle, Bell, User, LogOut } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Search, ShoppingCart, Heart, MessageCircle, User, LogOut } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { useCart } from '@/context/CartContext'
 import { useWishlist } from '@/context/WishlistContext'
@@ -18,11 +20,19 @@ import { Button } from '@/components/ui/button'
 import { Logo } from '@/components/layout/Logo'
 
 export function Navbar() {
+  const router = useRouter()
+  const [headerSearch, setHeaderSearch] = useState('')
   const { user, logout } = useAuth()
   const { itemCount: cartCount } = useCart()
   const { itemCount: wishlistCount } = useWishlist()
   const { getUnreadCount } = useChat()
   const unreadChats = getUnreadCount()
+
+  const submitHeaderSearch = (e?: FormEvent) => {
+    e?.preventDefault()
+    const q = headerSearch.trim()
+    router.push(q ? `/explore?q=${encodeURIComponent(q)}` : '/explore')
+  }
 
   return (
     <nav className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -30,20 +40,22 @@ export function Navbar() {
         <Logo size="sm" />
 
         {/* Search Bar - Hidden on mobile */}
-        <div className="hidden md:flex flex-1 mx-8">
+        <form onSubmit={submitHeaderSearch} className="hidden md:flex flex-1 mx-8">
           <div className="relative w-full max-w-sm">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
               placeholder="Search for books, electronics..."
               className="pl-10 bg-muted"
+              value={headerSearch}
+              onChange={(e) => setHeaderSearch(e.target.value)}
             />
           </div>
-        </div>
+        </form>
 
         {/* Right Actions */}
         <div className="flex items-center gap-2 md:gap-4">
           {/* Mobile Search - Shown on mobile */}
-          <button className="md:hidden">
+          <button type="button" className="md:hidden" onClick={() => router.push('/explore')}>
             <Search className="h-5 w-5" />
           </button>
 
@@ -77,14 +89,6 @@ export function Navbar() {
                     {unreadChats}
                   </span>
                 )}
-              </Link>
-
-              {/* Notifications */}
-              <Link href="/notifications" className="relative">
-                <Bell className="h-5 w-5" />
-                <span className="absolute -top-2 -right-2 bg-orange-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                  3
-                </span>
               </Link>
 
               {/* User Menu */}
@@ -144,15 +148,17 @@ export function Navbar() {
       </div>
 
       {/* Mobile Search Bar */}
-      <div className="md:hidden px-4 pb-3">
+      <form onSubmit={submitHeaderSearch} className="md:hidden px-4 pb-3">
         <div className="relative w-full">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
           <Input
             placeholder="Search..."
             className="pl-10 bg-muted text-sm"
+            value={headerSearch}
+            onChange={(e) => setHeaderSearch(e.target.value)}
           />
         </div>
-      </div>
+      </form>
     </nav>
   )
 }

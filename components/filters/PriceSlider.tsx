@@ -8,30 +8,34 @@ import { formatPrice } from '@/utils/formatters'
 interface PriceSliderProps {
   min?: number
   max?: number
+  value?: [number, number]
   onPriceChange?: (min: number, max: number) => void
 }
 
-export function PriceSlider({ min = 0, max = 100000, onPriceChange }: PriceSliderProps) {
-  const [priceRange, setPriceRange] = useState([min, max])
+export function PriceSlider({ min = 0, max = 100000, value, onPriceChange }: PriceSliderProps) {
+  const [internalRange, setInternalRange] = useState<[number, number]>([min, max])
+  const priceRange = value ?? internalRange
 
-  const handleSliderChange = (value: number[]) => {
-    setPriceRange(value)
-    onPriceChange?.(value[0], value[1])
+  const updateRange = (next: [number, number]) => {
+    if (!value) setInternalRange(next)
+    onPriceChange?.(next[0], next[1])
+  }
+
+  const handleSliderChange = (next: number[]) => {
+    updateRange([next[0], next[1]])
   }
 
   const handleMinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseInt(e.target.value) || 0
-    if (value <= priceRange[1]) {
-      setPriceRange([value, priceRange[1]])
-      onPriceChange?.(value, priceRange[1])
+    const nextMin = parseInt(e.target.value) || 0
+    if (nextMin <= priceRange[1]) {
+      updateRange([nextMin, priceRange[1]])
     }
   }
 
   const handleMaxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseInt(e.target.value) || max
-    if (value >= priceRange[0]) {
-      setPriceRange([priceRange[0], value])
-      onPriceChange?.(priceRange[0], value)
+    const nextMax = parseInt(e.target.value) || max
+    if (nextMax >= priceRange[0]) {
+      updateRange([priceRange[0], nextMax])
     }
   }
 
