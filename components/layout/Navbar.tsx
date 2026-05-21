@@ -59,6 +59,26 @@ export function Navbar() {
             <Search className="h-5 w-5" />
           </button>
 
+          {/* Cart — visible to everyone */}
+          <Link
+            href={user ? '/cart' : '/login'}
+            className="relative flex items-center justify-center p-1"
+            title={user ? `Cart (${cartCount} items)` : 'Log in to view cart'}
+          >
+            <ShoppingCart className="h-5 w-5" />
+            {user && (
+              <span
+                className={`absolute -top-1.5 -right-1.5 min-w-[1.125rem] h-[1.125rem] px-1 text-[10px] font-bold rounded-full flex items-center justify-center leading-none ${
+                  cartCount > 0
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-muted text-muted-foreground border border-border'
+                }`}
+              >
+                {cartCount > 99 ? '99+' : cartCount}
+              </span>
+            )}
+          </Link>
+
           {user ? (
             <>
               {/* Wishlist */}
@@ -67,16 +87,6 @@ export function Navbar() {
                 {wishlistCount > 0 && (
                   <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                     {wishlistCount}
-                  </span>
-                )}
-              </Link>
-
-              {/* Cart */}
-              <Link href="/cart" className="relative">
-                <ShoppingCart className="h-5 w-5" />
-                {cartCount > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-purple-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                    {cartCount}
                   </span>
                 )}
               </Link>

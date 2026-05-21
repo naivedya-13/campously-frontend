@@ -134,9 +134,11 @@ export default function CartPage() {
               <Button
                 size="lg"
                 className="w-full bg-gradient-to-r from-purple-600 to-blue-500 hover:from-purple-700 hover:to-blue-600"
-                onClick={() => (user ? (window.location.href = '/checkout') : (window.location.href = '/login'))}
+                asChild
               >
-                Proceed to Checkout
+                <Link href={user ? '/checkout' : '/login'}>
+                  {user ? 'Proceed to Checkout' : 'Log in to Checkout'}
+                </Link>
               </Button>
 
               <Button variant="outline" size="lg" className="w-full" asChild>
@@ -145,18 +147,9 @@ export default function CartPage() {
                 </Link>
               </Button>
 
-              {/* Promo Code */}
-              <div className="pt-4 border-t border-border">
-                <label className="text-sm font-medium">Promo Code</label>
-                <div className="flex gap-2 mt-2">
-                  <input
-                    type="text"
-                    placeholder="Enter code"
-                    className="flex-1 px-3 py-2 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
-                  />
-                  <Button variant="outline" size="sm">Apply</Button>
-                </div>
-              </div>
+              <p className="text-xs text-muted-foreground text-center pt-2">
+                Pay at campus meetup · Cash or UPI
+              </p>
             </div>
           </div>
         </div>

@@ -51,6 +51,7 @@ export function mapProduct(p: ApiProduct): Product {
     reviews: p.reviews,
     postedDate: p.postedDate || p.createdAt || new Date().toISOString(),
     location: p.location,
+    stock: p.stock ?? 1,
     isFeatured: p.isFeatured,
     isTrending: p.isTrending,
   }

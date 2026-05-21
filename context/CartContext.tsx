@@ -23,6 +23,10 @@ interface CartContextType {
   updateQuantity: (itemId: number, quantity: number) => Promise<void>
   clearCart: () => Promise<void>
   getTotal: () => number
+  getProductQuantity: (productId: string | number) => number
+  getCartItemId: (productId: string | number) => number | null
+  incrementProduct: (productId: number, maxStock?: number) => Promise<void>
+  decrementProduct: (productId: number) => Promise<void>
 }
 
 export const CartContext = createContext<CartContextType | undefined>(undefined)
@@ -106,6 +110,53 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setItemCount(0)
   }, [])
 
+  const getProductQuantity = useCallback(
+    (productId: string | number) => {
+      const id = String(productId)
+      return items.find((i) => i.productId === id)?.quantity ?? 0
+    },
+    [items]
+  )
+
+  const getCartItemId = useCallback(
+    (productId: string | number) => {
+      const id = String(productId)
+      return items.find((i) => i.productId === id)?.id ?? null
+    },
+    [items]
+  )
+
+  const incrementProduct = useCallback(
+    async (productId: number, maxStock?: number) => {
+      const id = String(productId)
+      const item = items.find((i) => i.productId === id)
+      const current = item?.quantity ?? 0
+      if (maxStock !== undefined && current >= maxStock) {
+        throw new Error('Maximum stock reached')
+      }
+      if (!item) {
+        await addItem(productId, 1)
+      } else {
+        await updateQuantity(item.id, current + 1)
+      }
+    },
+    [items, addItem, updateQuantity]
+  )
+
+  const decrementProduct = useCallback(
+    async (productId: number) => {
+      const id = String(productId)
+      const item = items.find((i) => i.productId === id)
+      if (!item) return
+      if (item.quantity <= 1) {
+        await removeItem(item.id)
+      } else {
+        await updateQuantity(item.id, item.quantity - 1)
+      }
+    },
+    [items, removeItem, updateQuantity]
+  )
+
   return (
     <CartContext.Provider
       value={{
@@ -119,6 +170,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         updateQuantity,
         clearCart,
         getTotal: () => total,
+        getProductQuantity,
+        getCartItemId,
+        incrementProduct,
+        decrementProduct,
       }}
     >
       {children}

@@ -17,6 +17,7 @@ export interface Product {
   reviews: number
   postedDate: string
   location: string
+  stock: number
   isFeatured?: boolean
   isTrending?: boolean
 }

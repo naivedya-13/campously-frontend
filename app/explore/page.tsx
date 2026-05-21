@@ -2,8 +2,12 @@
 
 import { useState, useEffect, useCallback, useMemo, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { Menu, X, Loader2 } from 'lucide-react'
+import Link from 'next/link'
+import { Menu, X, Loader2, ShoppingCart } from 'lucide-react'
 import { MainLayout } from '@/components/layout/MainLayout'
+import { useAuth } from '@/context/AuthContext'
+import { useCart } from '@/context/CartContext'
+import { formatPrice } from '@/utils/formatters'
 import { ProductCard } from '@/components/product/ProductCard'
 import { SearchBar } from '@/components/filters/SearchBar'
 import { FilterPanel, type FilterState } from '@/components/filters/FilterPanel'
@@ -22,6 +26,8 @@ const defaultFilters: FilterState = {
 }
 
 function ExploreContent() {
+  const { user } = useAuth()
+  const { itemCount, total } = useCart()
   const searchParams = useSearchParams()
   const [products, setProducts] = useState<Product[]>([])
   const [searchQuery, setSearchQuery] = useState('')
@@ -112,6 +118,29 @@ function ExploreContent() {
           Filters
         </Button>
       </div>
+
+      {user && itemCount > 0 && (
+        <Link
+          href="/cart"
+          className="flex items-center justify-between gap-4 mb-6 px-4 py-3 rounded-xl bg-purple-50 border border-purple-200 hover:border-purple-400 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <span className="relative flex h-10 w-10 items-center justify-center rounded-full bg-purple-600 text-white">
+              <ShoppingCart className="h-5 w-5" />
+              <span className="absolute -top-1 -right-1 min-w-[1.25rem] h-5 px-1 text-xs font-bold bg-red-500 text-white rounded-full flex items-center justify-center">
+                {itemCount > 99 ? '99+' : itemCount}
+              </span>
+            </span>
+            <div>
+              <p className="font-semibold text-purple-900">
+                {itemCount} {itemCount === 1 ? 'item' : 'items'} in cart
+              </p>
+              <p className="text-sm text-purple-700">{formatPrice(total)} total</p>
+            </div>
+          </div>
+          <span className="text-sm font-semibold text-purple-600 shrink-0">View Cart →</span>
+        </Link>
+      )}
 
       <div className="flex gap-8">
         <aside

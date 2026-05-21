@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { use, useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Heart, Share2, MessageCircle, Star, MapPin, Shield, Zap, Loader2 } from 'lucide-react'
+import { Heart, MessageCircle, Star, MapPin, Shield, Zap, Loader2 } from 'lucide-react'
 import { MainLayout } from '@/components/layout/MainLayout'
 import { ProductCard } from '@/components/product/ProductCard'
+import { CartQuantityControls } from '@/components/product/CartQuantityControls'
 import { Button } from '@/components/ui/button'
 import { productsApi } from '@/lib/api/productsApi'
 import { mapProduct } from '@/lib/mappers/product'
@@ -16,11 +17,12 @@ import { useChat } from '@/context/ChatContext'
 import { formatPrice, calculateDiscount, formatCondition, formatDate } from '@/utils/formatters'
 import { toast } from 'sonner'
 
-export default function ProductPage({ params }: { params: { id: string } }) {
+export default function ProductPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id: productIdParam } = use(params)
   const router = useRouter()
   const { user } = useAuth()
   const { isInWishlist, toggleItem } = useWishlist()
-  const { addItem: addToCart } = useCart()
+  const { addItem: addToCart, getProductQuantity } = useCart()
   const { startConversation } = useChat()
 
   const [product, setProduct] = useState<Product | null>(null)
@@ -30,13 +32,13 @@ export default function ProductPage({ params }: { params: { id: string } }) {
   >([])
   const [loading, setLoading] = useState(true)
   const [selectedImage, setSelectedImage] = useState(0)
-  const [quantity, setQuantity] = useState(1)
+  const [adding, setAdding] = useState(false)
 
   useEffect(() => {
     const load = async () => {
       setLoading(true)
       try {
-        const id = parseInt(params.id, 10)
+        const id = parseInt(productIdParam, 10)
         const [data, rel] = await Promise.all([
           productsApi.getById(id),
           productsApi.related(id),
@@ -52,7 +54,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
       }
     }
     load()
-  }, [params.id])
+  }, [productIdParam])
 
   if (loading) {
     return (
@@ -79,24 +81,36 @@ export default function ProductPage({ params }: { params: { id: string } }) {
   const discount = product.originalPrice
     ? calculateDiscount(product.originalPrice, product.price)
     : 0
+  const outOfStock = product.stock <= 0
+  const inCartQty = getProductQuantity(product.id)
 
-  const handleAddToCart = async () => {
+  const requireLogin = () => {
+    toast.info('Please log in to purchase')
+    router.push('/login')
+  }
+
+  const handleBuyNow = async () => {
     if (!user) {
-      router.push('/login')
+      requireLogin()
       return
     }
+    if (outOfStock) return
+    setAdding(true)
     try {
-      await addToCart(parseInt(product.id, 10), quantity)
-      toast.success('Added to cart')
-      router.push('/cart')
+      if (inCartQty === 0) {
+        await addToCart(parseInt(product.id, 10), 1)
+      }
+      router.push('/checkout')
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : 'Failed to add to cart')
+      toast.error(e instanceof Error ? e.message : 'Failed to proceed')
+    } finally {
+      setAdding(false)
     }
   }
 
   const handleWishlistToggle = async () => {
     if (!user) {
-      router.push('/login')
+      requireLogin()
       return
     }
     await toggleItem(parseInt(product.id, 10))
@@ -104,7 +118,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
 
   const handleContactSeller = async () => {
     if (!user) {
-      router.push('/login')
+      requireLogin()
       return
     }
     try {
@@ -183,6 +197,16 @@ export default function ProductPage({ params }: { params: { id: string } }) {
 
             <p className="text-muted-foreground leading-relaxed">{product.description}</p>
 
+            <div className="flex items-center gap-3 text-sm">
+              {outOfStock ? (
+                <span className="text-red-600 font-semibold">Out of stock</span>
+              ) : product.stock <= 5 ? (
+                <span className="text-orange-600 font-medium">Only {product.stock} left in stock</span>
+              ) : (
+                <span className="text-green-600 font-medium">{product.stock} available</span>
+              )}
+            </div>
+
             <div className="flex items-center gap-4 p-4 bg-muted rounded-xl">
               <img
                 src={product.sellerAvatar}
@@ -208,30 +232,27 @@ export default function ProductPage({ params }: { params: { id: string } }) {
               </div>
             </div>
 
-            <div className="flex items-center gap-4">
-              <span className="text-sm font-medium">Quantity:</span>
-              <div className="flex items-center border border-border rounded-lg">
-                <button
-                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="px-3 py-2 hover:bg-muted"
-                >
-                  −
-                </button>
-                <span className="px-4 py-2 border-l border-r">{quantity}</span>
-                <button onClick={() => setQuantity(quantity + 1)} className="px-3 py-2 hover:bg-muted">
-                  +
-                </button>
-              </div>
-            </div>
-
             <div className="flex gap-3">
+              {outOfStock ? (
+                <Button size="lg" variant="outline" className="flex-1" disabled>
+                  Sold Out
+                </Button>
+              ) : (
+                <CartQuantityControls
+                  productId={product.id}
+                  stock={product.stock}
+                  size="md"
+                  className="flex-1"
+                />
+              )}
               <Button
                 size="lg"
                 className="flex-1 bg-gradient-to-r from-purple-600 to-blue-500"
-                onClick={handleAddToCart}
+                disabled={outOfStock || adding}
+                onClick={handleBuyNow}
               >
                 <Zap className="mr-2 h-5 w-5" />
-                Add to Cart
+                Buy Now
               </Button>
               <Button size="lg" variant="outline" onClick={handleWishlistToggle}>
                 <Heart className={`h-5 w-5 ${isSaved ? 'fill-red-500 text-red-500' : ''}`} />
