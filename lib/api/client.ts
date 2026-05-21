@@ -59,7 +59,7 @@ apiClient.interceptors.response.use(
       }
     }
 
-    return Promise.reject(new ApiError(message, status, data))
+    return Promise.reject(new ApiError(message.toString(), status, data))
   }
 )
 
