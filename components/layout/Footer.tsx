@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { Facebook, Twitter, Instagram, Linkedin } from 'lucide-react'
+import { Logo } from '@/components/layout/Logo'
 
 export function Footer() {
   return (
@@ -10,9 +11,9 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
           {/* Brand */}
           <div>
-            <h3 className="font-bold text-lg bg-gradient-to-r from-purple-600 to-blue-500 bg-clip-text text-transparent mb-4">
-              Campusly
-            </h3>
+            <div className="mb-4">
+              <Logo size="md" href="/" />
+            </div>
             <p className="text-sm text-muted-foreground mb-4">
               Your trusted college marketplace for buying and selling textbooks, electronics, and more.
             </p>
