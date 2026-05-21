@@ -19,8 +19,8 @@ import { cn } from '@/lib/utils'
 
 export function Navbar() {
   const { user, logout } = useAuth()
-  const { items: cartItems } = useCart()
-  const { items: wishlistItems } = useWishlist()
+  const { itemCount: cartCount } = useCart()
+  const { itemCount: wishlistCount } = useWishlist()
   const { getUnreadCount } = useChat()
   const unreadChats = getUnreadCount()
 
@@ -58,9 +58,9 @@ export function Navbar() {
               {/* Wishlist */}
               <Link href="/wishlist" className="relative">
                 <Heart className="h-5 w-5" />
-                {wishlistItems.length > 0 && (
+                {wishlistCount > 0 && (
                   <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                    {wishlistItems.length}
+                    {wishlistCount}
                   </span>
                 )}
               </Link>
@@ -68,9 +68,9 @@ export function Navbar() {
               {/* Cart */}
               <Link href="/cart" className="relative">
                 <ShoppingCart className="h-5 w-5" />
-                {cartItems.length > 0 && (
+                {cartCount > 0 && (
                   <span className="absolute -top-2 -right-2 bg-purple-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                    {cartItems.length}
+                    {cartCount}
                   </span>
                 )}
               </Link>
@@ -139,10 +139,10 @@ export function Navbar() {
           ) : (
             <>
               <Button variant="ghost" asChild>
-                <Link href="/auth/login">Login</Link>
+                <Link href="/login">Login</Link>
               </Button>
               <Button asChild className="bg-gradient-to-r from-purple-600 to-blue-500">
-                <Link href="/auth/signup">Sign Up</Link>
+                <Link href="/signup">Sign Up</Link>
               </Button>
             </>
           )}

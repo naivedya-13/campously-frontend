@@ -5,10 +5,14 @@ import { AuthProvider } from '@/context/AuthContext'
 import { CartProvider } from '@/context/CartContext'
 import { WishlistProvider } from '@/context/WishlistContext'
 import { ChatProvider } from '@/context/ChatContext'
+import { ThemeProvider } from '@/context/ThemeContext'
+import { NotificationProvider } from '@/context/NotificationContext'
+// NotificationProvider must be inside AuthProvider
+import { Toaster } from '@/components/ui/sonner'
 import './globals.css'
 
-const _geist = Geist({ subsets: ["latin"] });
-const _geistMono = Geist_Mono({ subsets: ["latin"] });
+const _geist = Geist({ subsets: ['latin'] })
+const _geistMono = Geist_Mono({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: 'Campusly - College Marketplace',
@@ -39,18 +43,23 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className="bg-background">
+    <html lang="en" className="bg-background" suppressHydrationWarning>
       <body className="font-sans antialiased bg-background text-foreground">
-        <AuthProvider>
-          <CartProvider>
-            <WishlistProvider>
-              <ChatProvider>
-                {children}
-                {process.env.NODE_ENV === 'production' && <Analytics />}
-              </ChatProvider>
-            </WishlistProvider>
-          </CartProvider>
-        </AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <CartProvider>
+              <WishlistProvider>
+                <NotificationProvider>
+                  <ChatProvider>
+                    {children}
+                    <Toaster richColors position="top-right" />
+                    {process.env.NODE_ENV === 'production' && <Analytics />}
+                  </ChatProvider>
+                </NotificationProvider>
+              </WishlistProvider>
+            </CartProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   )

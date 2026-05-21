@@ -3,11 +3,11 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { User, Mail, Lock, Eye, EyeOff, Building2, Check } from 'lucide-react'
+import { User, Hash, Lock, Eye, EyeOff, Building2, BookOpen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useAuth } from '@/context/AuthContext'
-import { validateEmail } from '@/utils/formatters'
+import { ApiError } from '@/lib/api'
 
 interface SignupFormProps {
   onSuccess?: () => void
@@ -21,17 +21,19 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [formData, setFormData] = useState({
+    enrollmentId: '',
     name: '',
-    email: '',
+    college: '',
+    department: '',
+    year: '',
     password: '',
     confirmPassword: '',
-    university: ''
   })
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     }))
     setError('')
   }
@@ -40,33 +42,50 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
     e.preventDefault()
     setError('')
 
-    if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword || !formData.university) {
+    const {
+      enrollmentId,
+      name,
+      college,
+      department,
+      year,
+      password,
+      confirmPassword,
+    } = formData
+
+    if (!enrollmentId || !name || !college || !department || !year || !password || !confirmPassword) {
       setError('Please fill in all fields')
       return
     }
 
-    if (!validateEmail(formData.email)) {
-      setError('Please enter a valid email')
+    if (!/^\d{5,10}$/.test(enrollmentId.trim())) {
+      setError('Please enter a valid enrollment ID')
       return
     }
 
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters')
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters')
       return
     }
 
-    if (formData.password !== formData.confirmPassword) {
+    if (password !== confirmPassword) {
       setError('Passwords do not match')
       return
     }
 
     try {
       setLoading(true)
-      await signup(formData.name, formData.email, formData.password)
+      await signup({
+        enrollmentId: enrollmentId.trim(),
+        name,
+        password,
+        college,
+        department,
+        year: parseInt(year, 10),
+      })
       onSuccess?.()
-      router.push('/explore')
-    } catch {
-      setError('Signup failed. Please try again.')
+      router.push(`/verify?enrollmentId=${encodeURIComponent(enrollmentId.trim())}`)
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Signup failed. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -75,16 +94,32 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && (
-        <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-600">
           {error}
         </div>
       )}
 
-      {/* Full Name */}
+      <div className="space-y-2">
+        <label className="text-sm font-medium">Enrollment ID</label>
+        <div className="relative">
+          <Hash className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            type="text"
+            name="enrollmentId"
+            inputMode="numeric"
+            placeholder="467936"
+            value={formData.enrollmentId}
+            onChange={handleChange}
+            disabled={loading}
+            className="pl-10"
+          />
+        </div>
+      </div>
+
       <div className="space-y-2">
         <label className="text-sm font-medium">Full Name</label>
         <div className="relative">
-          <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-5 w-5" />
+          <User className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
           <Input
             type="text"
             name="name"
@@ -97,112 +132,102 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
         </div>
       </div>
 
-      {/* Email */}
       <div className="space-y-2">
-        <label className="text-sm font-medium">Email Address</label>
+        <label className="text-sm font-medium">College</label>
         <div className="relative">
-          <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-5 w-5" />
+          <Building2 className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
           <Input
-            type="email"
-            name="email"
-            placeholder="you@university.edu"
-            value={formData.email}
+            type="text"
+            name="college"
+            placeholder="Campus State University"
+            value={formData.college}
             onChange={handleChange}
             disabled={loading}
             className="pl-10"
           />
         </div>
-        <p className="text-xs text-muted-foreground">Use your college email for verification</p>
       </div>
 
-      {/* University */}
-      <div className="space-y-2">
-        <label className="text-sm font-medium">University</label>
-        <div className="relative">
-          <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-5 w-5" />
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Department</label>
+          <div className="relative">
+            <BookOpen className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              type="text"
+              name="department"
+              placeholder="Computer Science"
+              value={formData.department}
+              onChange={handleChange}
+              disabled={loading}
+              className="pl-9"
+            />
+          </div>
+        </div>
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Year</label>
           <select
-            name="university"
-            value={formData.university}
+            name="year"
+            value={formData.year}
             onChange={handleChange}
             disabled={loading}
-            className="w-full pl-10 pr-4 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
           >
-            <option value="">Select your university</option>
-            <option value="Stanford">Stanford University</option>
-            <option value="MIT">MIT</option>
-            <option value="Harvard">Harvard University</option>
-            <option value="Berkeley">UC Berkeley</option>
-            <option value="Yale">Yale University</option>
-            <option value="Columbia">Columbia University</option>
-            <option value="Princeton">Princeton University</option>
-            <option value="Other">Other</option>
+            <option value="">Select</option>
+            <option value="1">1st Year</option>
+            <option value="2">2nd Year</option>
+            <option value="3">3rd Year</option>
+            <option value="4">4th Year</option>
           </select>
         </div>
       </div>
 
-      {/* Password */}
       <div className="space-y-2">
         <label className="text-sm font-medium">Password</label>
         <div className="relative">
-          <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-5 w-5" />
+          <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
           <Input
             type={showPassword ? 'text' : 'password'}
             name="password"
-            placeholder="••••••"
+            placeholder="••••••••"
             value={formData.password}
             onChange={handleChange}
             disabled={loading}
-            className="pl-10"
+            className="pl-10 pr-10"
           />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
           >
             {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
           </button>
         </div>
       </div>
 
-      {/* Confirm Password */}
       <div className="space-y-2">
         <label className="text-sm font-medium">Confirm Password</label>
         <div className="relative">
-          <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-5 w-5" />
+          <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
           <Input
             type={showConfirmPassword ? 'text' : 'password'}
             name="confirmPassword"
-            placeholder="••••••"
+            placeholder="••••••••"
             value={formData.confirmPassword}
             onChange={handleChange}
             disabled={loading}
-            className="pl-10"
+            className="pl-10 pr-10"
           />
           <button
             type="button"
             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
           >
             {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
           </button>
         </div>
       </div>
 
-      {/* Terms */}
-      <div className="flex items-start gap-2">
-        <input
-          type="checkbox"
-          id="terms"
-          className="mt-1"
-          required
-          disabled={loading}
-        />
-        <label htmlFor="terms" className="text-sm text-muted-foreground">
-          I agree to the <a href="#" className="text-purple-600 hover:text-purple-700">Terms of Service</a> and <a href="#" className="text-purple-600 hover:text-purple-700">Privacy Policy</a>
-        </label>
-      </div>
-
-      {/* Submit Button */}
       <Button
         type="submit"
         className="w-full bg-gradient-to-r from-purple-600 to-blue-500 hover:from-purple-700 hover:to-blue-600"
@@ -211,10 +236,9 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
         {loading ? 'Creating account...' : 'Create Account'}
       </Button>
 
-      {/* Login Link */}
       <p className="text-center text-sm text-muted-foreground">
         Already have an account?{' '}
-        <Link href="/auth/login" className="text-purple-600 hover:text-purple-700 font-semibold">
+        <Link href="/login" className="font-semibold text-purple-600 hover:text-purple-700">
           Login
         </Link>
       </p>

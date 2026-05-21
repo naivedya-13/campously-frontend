@@ -1,6 +1,6 @@
 'use client'
 
-import { Mail, MapPin, Building2, Calendar, Edit2, Save, X } from 'lucide-react'
+import { Mail, MapPin, Building2, Calendar, Edit2, Save, X, Hash } from 'lucide-react'
 import { useState } from 'react'
 import { MainLayout } from '@/components/layout/MainLayout'
 import { Button } from '@/components/ui/button'
@@ -25,16 +25,16 @@ export default function ProfilePage() {
         <div className="max-w-7xl mx-auto px-4 md:px-6 py-12 text-center">
           <h1 className="text-3xl font-bold mb-4">Please login to view your profile</h1>
           <Button asChild>
-            <a href="/auth/login">Login</a>
+            <a href="/login">Login</a>
           </Button>
         </div>
       </MainLayout>
     )
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    updateProfile(formData)
+    await updateProfile(formData)
     setIsEditing(false)
   }
 
@@ -73,9 +73,15 @@ export default function ProfilePage() {
                 <>
                   <div className="space-y-3 mb-6">
                     <div className="flex items-center gap-3 text-muted-foreground">
-                      <Mail className="h-5 w-5" />
-                      <span>{user.email}</span>
+                      <Hash className="h-5 w-5" />
+                      <span>Enrollment ID: {user.enrollmentId}</span>
                     </div>
+                    {user.email && (
+                      <div className="flex items-center gap-3 text-muted-foreground">
+                        <Mail className="h-5 w-5" />
+                        <span>{user.email}</span>
+                      </div>
+                    )}
                     <div className="flex items-center gap-3 text-muted-foreground">
                       <Building2 className="h-5 w-5" />
                       <span>{user.university}</span>

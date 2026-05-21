@@ -10,8 +10,7 @@ import { formatPrice } from '@/utils/formatters'
 
 export default function CartPage() {
   const { user } = useAuth()
-  const { items, removeItem, updateQuantity, getTotal } = useCart()
-  const total = getTotal()
+  const { items, removeItem, updateQuantity, total } = useCart()
 
   if (items.length === 0) {
     return (
@@ -72,7 +71,7 @@ export default function CartPage() {
                   {/* Quantity & Remove */}
                   <div className="flex flex-col items-end justify-between">
                     <button
-                      onClick={() => removeItem(item.productId)}
+                      onClick={() => removeItem(item.id)}
                       className="text-red-500 hover:text-red-700 transition"
                     >
                       <Trash2 className="h-5 w-5" />
@@ -80,7 +79,7 @@ export default function CartPage() {
 
                     <div className="flex items-center border border-border rounded-lg">
                       <button
-                        onClick={() => updateQuantity(item.productId, item.quantity - 1)}
+                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
                         className="px-2 py-1 hover:bg-muted transition"
                       >
                         −
@@ -89,7 +88,7 @@ export default function CartPage() {
                         {item.quantity}
                       </span>
                       <button
-                        onClick={() => updateQuantity(item.productId, item.quantity + 1)}
+                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
                         className="px-2 py-1 hover:bg-muted transition"
                       >
                         +
@@ -135,7 +134,7 @@ export default function CartPage() {
               <Button
                 size="lg"
                 className="w-full bg-gradient-to-r from-purple-600 to-blue-500 hover:from-purple-700 hover:to-blue-600"
-                onClick={() => user ? window.location.href = '/checkout' : window.location.href = '/auth/login'}
+                onClick={() => (user ? (window.location.href = '/checkout') : (window.location.href = '/login'))}
               >
                 Proceed to Checkout
               </Button>

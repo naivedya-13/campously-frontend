@@ -1,6 +1,7 @@
 'use client'
 
-import { Search } from 'lucide-react'
+import { Search, MessageCirclePlus } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import type { Chat } from '@/types/chat'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
@@ -12,6 +13,7 @@ interface ChatSidebarProps {
   onSelectChat: (chat: Chat) => void
   searchQuery?: string
   onSearch?: (query: string) => void
+  onNewChat?: () => void
 }
 
 export function ChatSidebar({
@@ -19,7 +21,8 @@ export function ChatSidebar({
   activeChat,
   onSelectChat,
   searchQuery = '',
-  onSearch
+  onSearch,
+  onNewChat,
 }: ChatSidebarProps) {
   const filteredChats = chats.filter(chat =>
     chat.participantName.toLowerCase().includes(searchQuery.toLowerCase())
@@ -29,7 +32,18 @@ export function ChatSidebar({
     <div className="w-full md:w-72 border-r border-border bg-muted/30 flex flex-col">
       {/* Header */}
       <div className="p-4 border-b border-border">
-        <h2 className="font-bold text-lg mb-3">Messages</h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-bold text-lg">Messages</h2>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 gap-1 text-purple-600 border-purple-200 hover:bg-purple-50"
+            onClick={onNewChat}
+          >
+            <MessageCirclePlus className="h-4 w-4" />
+            New
+          </Button>
+        </div>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input

@@ -1,73 +1,97 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { MainLayout } from '@/components/layout/MainLayout'
 import { ChatSidebar } from '@/components/chat/ChatSidebar'
 import { ChatWindow } from '@/components/chat/ChatWindow'
 import { useChat } from '@/context/ChatContext'
 import { useAuth } from '@/context/AuthContext'
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
+import { NewChatDialog } from '@/components/chat/NewChatDialog'
 
-export default function ChatPage() {
+function ChatContent() {
+  const searchParams = useSearchParams()
   const { user } = useAuth()
-  const { chats, activeChat, messages, setActiveChat, addMessage } = useChat()
+  const {
+    chats,
+    activeChat,
+    messages,
+    setActiveChat,
+    sendMessage,
+    isLoading,
+    isConnected,
+    typingUserId,
+    emitTyping,
+  } = useChat()
   const [searchQuery, setSearchQuery] = useState('')
+  const [newChatOpen, setNewChatOpen] = useState(false)
 
-  if (!user) {
-    return (
-      <MainLayout>
-        <div className="max-w-7xl mx-auto px-4 md:px-6 py-12 text-center">
-          <h1 className="text-3xl font-bold mb-4">Please login to access messages</h1>
-          <a href="/auth/login" className="inline-block px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
-            Login
-          </a>
-        </div>
-      </MainLayout>
-    )
-  }
-
-  const handleSendMessage = (content: string) => {
-    if (activeChat) {
-      const newMessage = {
-        id: Math.random().toString(),
-        chatId: activeChat.id,
-        senderId: 'user1',
-        senderName: 'You',
-        content,
-        timestamp: new Date().toISOString(),
-        read: true
-      }
-      addMessage(newMessage)
+  useEffect(() => {
+    const conversationId = searchParams.get('conversation')
+    if (conversationId && chats.length > 0 && !activeChat) {
+      const chat = chats.find((c) => c.id === conversationId)
+      if (chat) setActiveChat(chat)
     }
-  }
+  }, [searchParams, chats, activeChat, setActiveChat])
 
   return (
     <MainLayout>
       <div className="h-[calc(100vh-80px)] flex bg-background">
-        {/* Sidebar */}
+        {!isConnected && (
+          <div className="absolute top-20 left-1/2 z-10 -translate-x-1/2 rounded-lg bg-amber-100 px-4 py-2 text-sm text-amber-900">
+            Connecting to chat server...
+          </div>
+        )}
+
         <ChatSidebar
           chats={chats}
           activeChat={activeChat}
           onSelectChat={setActiveChat}
           searchQuery={searchQuery}
           onSearch={setSearchQuery}
+          onNewChat={() => setNewChatOpen(true)}
         />
 
-        {/* Main Chat Area */}
+        <NewChatDialog open={newChatOpen} onOpenChange={setNewChatOpen} />
+
         {activeChat ? (
           <ChatWindow
             chat={activeChat}
             messages={messages}
-            onSendMessage={handleSendMessage}
+            currentUserId={user?.id || ''}
+            onSendMessage={sendMessage}
+            isLoading={isLoading}
+            isTyping={typingUserId === activeChat.participantId}
+            onTyping={emitTyping}
           />
         ) : (
           <div className="flex-1 flex items-center justify-center text-muted-foreground">
             <div className="text-center">
               <div className="text-6xl mb-4">💬</div>
-              <p className="text-xl">Select a chat to start messaging</p>
+              <p className="text-xl">
+                {chats.length === 0
+                  ? 'No conversations yet. Click New to message a student.'
+                  : 'Select a chat or click New to message someone'}
+              </p>
             </div>
           </div>
         )}
       </div>
     </MainLayout>
+  )
+}
+
+export default function ChatPage() {
+  return (
+    <ProtectedRoute>
+      <Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-purple-600 border-t-transparent" />
+        </div>
+      }>
+        <ChatContent />
+      </Suspense>
+    </ProtectedRoute>
   )
 }

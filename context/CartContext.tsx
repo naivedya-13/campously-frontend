@@ -1,73 +1,133 @@
 'use client'
 
-import React, { createContext, useState, useCallback } from 'react'
-import type { CartItem } from '@/types/product'
+import React, { createContext, useState, useCallback, useEffect, useContext } from 'react'
+import { cartApi, type CartItemResponse } from '@/lib/api/cartApi'
+import { AuthContext } from '@/context/AuthContext'
+export interface CartItem {
+  id: number
+  productId: string
+  productName: string
+  price: number
+  quantity: number
+  image: string
+}
 
 interface CartContextType {
   items: CartItem[]
-  addItem: (item: CartItem) => void
-  removeItem: (productId: string) => void
-  updateQuantity: (productId: string, quantity: number) => void
-  clearCart: () => void
+  total: number
+  itemCount: number
+  isLoading: boolean
+  refreshCart: () => Promise<void>
+  addItem: (productId: number, quantity?: number) => Promise<void>
+  removeItem: (itemId: number) => Promise<void>
+  updateQuantity: (itemId: number, quantity: number) => Promise<void>
+  clearCart: () => Promise<void>
   getTotal: () => number
 }
 
 export const CartContext = createContext<CartContextType | undefined>(undefined)
 
+function mapItems(items: CartItemResponse[]): CartItem[] {
+  return items.map((i) => ({
+    id: i.id,
+    productId: String(i.productId),
+    productName: i.productName,
+    price: i.price,
+    quantity: i.quantity,
+    image: i.image || '/placeholder.svg',
+  }))
+}
+
 export function CartProvider({ children }: { children: React.ReactNode }) {
+  const auth = useContext(AuthContext)
+  const isAuthenticated = auth?.isAuthenticated ?? false
+
   const [items, setItems] = useState<CartItem[]>([])
+  const [total, setTotal] = useState(0)
+  const [itemCount, setItemCount] = useState(0)
+  const [isLoading, setIsLoading] = useState(false)
 
-  const addItem = useCallback((item: CartItem) => {
-    setItems(prev => {
-      const existingItem = prev.find(i => i.productId === item.productId)
-      if (existingItem) {
-        return prev.map(i => 
-          i.productId === item.productId 
-            ? { ...i, quantity: i.quantity + item.quantity }
-            : i
-        )
-      }
-      return [...prev, item]
-    })
-  }, [])
+  const applyCart = (data: { items: CartItemResponse[]; total: number; itemCount: number }) => {
+    setItems(mapItems(data.items))
+    setTotal(data.total)
+    setItemCount(data.itemCount)
+  }
 
-  const removeItem = useCallback((productId: string) => {
-    setItems(prev => prev.filter(i => i.productId !== productId))
-  }, [])
-
-  const updateQuantity = useCallback((productId: string, quantity: number) => {
-    if (quantity <= 0) {
-      removeItem(productId)
+  const refreshCart = useCallback(async () => {
+    if (!isAuthenticated) {
+      setItems([])
+      setTotal(0)
+      setItemCount(0)
       return
     }
-    setItems(prev => 
-      prev.map(i => 
-        i.productId === productId 
-          ? { ...i, quantity }
-          : i
-      )
-    )
-  }, [removeItem])
+    setIsLoading(true)
+    try {
+      const data = await cartApi.get()
+      applyCart(data)
+    } catch {
+      setItems([])
+      setTotal(0)
+      setItemCount(0)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [isAuthenticated])
 
-  const clearCart = useCallback(() => {
-    setItems([])
+  useEffect(() => {
+    refreshCart()
+  }, [refreshCart])
+
+  const addItem = useCallback(
+    async (productId: number, quantity = 1) => {
+      const data = await cartApi.add(productId, quantity)
+      applyCart(data)
+    },
+    []
+  )
+
+  const removeItem = useCallback(async (itemId: number) => {
+    const data = await cartApi.remove(itemId)
+    applyCart(data)
   }, [])
 
-  const getTotal = useCallback(() => {
-    return items.reduce((total, item) => total + (item.price * item.quantity), 0)
-  }, [items])
+  const updateQuantity = useCallback(async (itemId: number, quantity: number) => {
+    if (quantity < 1) {
+      await removeItem(itemId)
+      return
+    }
+    const data = await cartApi.update(itemId, quantity)
+    applyCart(data)
+  }, [removeItem])
+
+  const clearCart = useCallback(async () => {
+    await cartApi.clear()
+    setItems([])
+    setTotal(0)
+    setItemCount(0)
+  }, [])
 
   return (
-    <CartContext.Provider value={{ items, addItem, removeItem, updateQuantity, clearCart, getTotal }}>
+    <CartContext.Provider
+      value={{
+        items,
+        total,
+        itemCount,
+        isLoading,
+        refreshCart,
+        addItem,
+        removeItem,
+        updateQuantity,
+        clearCart,
+        getTotal: () => total,
+      }}
+    >
       {children}
     </CartContext.Provider>
   )
 }
 
 export function useCart() {
-  const context = React.useContext(CartContext)
-  if (context === undefined) {
-    throw new Error('useCart must be used within CartProvider')
-  }
-  return context
+  const ctx = React.useContext(CartContext)
+  if (!ctx) throw new Error('useCart must be used within CartProvider')
+  return ctx
 }

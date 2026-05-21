@@ -11,6 +11,8 @@ export interface Message {
 
 export interface Chat {
   id: string
+  productId?: number | null
+  productName?: string | null
   participantId: string
   participantName: string
   participantAvatar: string
